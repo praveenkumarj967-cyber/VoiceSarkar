@@ -2,16 +2,32 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, String, DateTime, ForeignKey, Text, Integer, JSON, Index
+    Column, String, DateTime, ForeignKey, Text, Integer, JSON, Index, CHAR
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import TypeDecorator
 
 from app.db import Base
 
 
+class UUIDType(TypeDecorator):
+    """Cross-database UUID type: native UUID for PostgreSQL, CHAR(36) for SQLite."""
+    impl = CHAR(36)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        return uuid.UUID(value)
+
+
 def uuid_pk():
-    return Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    return Column(UUIDType, primary_key=True, default=uuid.uuid4)
 
 
 class Citizen(Base):
@@ -32,7 +48,7 @@ class Call(Base):
     __tablename__ = "calls"
 
     id = uuid_pk()
-    citizen_id = Column(UUID(as_uuid=True), ForeignKey("citizens.id"), nullable=True)
+    citizen_id = Column(UUIDType, ForeignKey("citizens.id"), nullable=True)
     telephony_call_sid = Column(String(80), unique=True, nullable=False, index=True)
     from_number = Column(String(15), nullable=False)
     language = Column(String(10), nullable=True)
@@ -49,7 +65,7 @@ class ConversationTurn(Base):
     __tablename__ = "conversation_turns"
 
     id = uuid_pk()
-    call_id = Column(UUID(as_uuid=True), ForeignKey("calls.id"), nullable=False)
+    call_id = Column(UUIDType, ForeignKey("calls.id"), nullable=False)
     turn_index = Column(Integer, nullable=False)
     speaker = Column(String(10), nullable=False)  # ai / citizen
     raw_asr_text = Column(Text, nullable=True)
@@ -70,8 +86,8 @@ class Complaint(Base):
 
     id = uuid_pk()
     complaint_ref = Column(String(40), unique=True, nullable=False, index=True)
-    citizen_id = Column(UUID(as_uuid=True), ForeignKey("citizens.id"), nullable=False)
-    call_id = Column(UUID(as_uuid=True), ForeignKey("calls.id"), nullable=True)
+    citizen_id = Column(UUIDType, ForeignKey("citizens.id"), nullable=False)
+    call_id = Column(UUIDType, ForeignKey("calls.id"), nullable=True)
     intent = Column(String(60), nullable=False)
     slots = Column(JSON, nullable=False, default=dict)
     target_portal = Column(String(120), nullable=False)
@@ -90,7 +106,7 @@ class StatusHistory(Base):
     __tablename__ = "status_history"
 
     id = uuid_pk()
-    complaint_id = Column(UUID(as_uuid=True), ForeignKey("complaints.id"), nullable=False)
+    complaint_id = Column(UUIDType, ForeignKey("complaints.id"), nullable=False)
     status = Column(String(20), nullable=False)
     note = Column(Text, nullable=True)
     changed_at = Column(DateTime, default=datetime.utcnow)
@@ -102,7 +118,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = uuid_pk()
-    complaint_id = Column(UUID(as_uuid=True), ForeignKey("complaints.id"), nullable=True)
+    complaint_id = Column(UUIDType, ForeignKey("complaints.id"), nullable=True)
     channel = Column(String(10), nullable=False, default="sms")
     to_number = Column(String(15), nullable=False)
     body = Column(Text, nullable=False)
@@ -123,3 +139,4 @@ class AuditLog(Base):
     entity_id = Column(String(80), nullable=True)
     metadata_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+

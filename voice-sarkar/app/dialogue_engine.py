@@ -4,12 +4,35 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-import redis
-
 from app.config import settings
 
-r = redis.from_url(settings.redis_url, decode_responses=True)
 SESSION_TTL_SECONDS = 60 * 20  # a live call shouldn't sit idle for 20+ minutes
+
+
+class _InMemoryStore:
+    """Minimal Redis-compatible in-memory store for local dev (no Redis needed)."""
+    def __init__(self):
+        self._data = {}
+
+    def get(self, key):
+        return self._data.get(key)
+
+    def set(self, key, value, ex=None):
+        self._data[key] = value
+
+    def delete(self, key):
+        self._data.pop(key, None)
+
+
+try:
+    import redis as _redis
+    _client = _redis.from_url(settings.redis_url, decode_responses=True, socket_connect_timeout=2)
+    _client.ping()
+    r = _client
+    print("[VoiceSarkar] Connected to Redis.")
+except Exception as _e:
+    r = _InMemoryStore()
+    print(f"[VoiceSarkar] Redis unavailable ({_e}). Using in-memory session store (local dev only).")
 
 INTENTS = {
     "pension": {
