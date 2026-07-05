@@ -1,13 +1,41 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-sqlalchemy==2.0.35
-psycopg2-binary==2.9.9
-redis==5.0.8
-httpx==0.27.2
-twilio==9.3.2
-python-dotenv==1.0.1
-pydantic==2.9.2
-pydantic-settings==2.5.2
-alembic==1.13.2
-tenacity==9.0.0
-playwright==1.47.0
+# Voice Sarkar — Backend Dependencies (Python 3.14 compatible)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.36
+httpx>=0.27.2
+python-multipart>=0.0.12
+python-dotenv>=1.0.1
+
+# Auth
+python-jose[cryptography]>=3.3.0
+bcrypt>=5.0.0
+
+# Pydantic v2
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+pydantic[email]>=2.10.0
+email-validator>=2.3.0
+
+# Database
+alembic>=1.14.0
+
+# Redis
+redis>=5.2.0
+
+# Telephony
+twilio>=9.4.0
+
+# AI
+google-generativeai>=0.8.3
+
+# HTTP / Retry
+tenacity>=9.0.0
+aiofiles>=24.1.0
+
+# Rate limiting
+slowapi>=0.1.10
+
+# Testing
+pytest>=8.3.0
+pytest-asyncio>=0.25.0
+httpx>=0.27.2
