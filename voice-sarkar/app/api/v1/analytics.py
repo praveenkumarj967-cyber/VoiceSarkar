@@ -34,13 +34,14 @@ def get_stats(db: Session = Depends(get_db), _=Depends(require_officer)):
 
 @router.get("/timeseries", response_model=List[TimeSeriesPoint])
 def get_timeseries(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db), _=Depends(require_officer)):
+    from sqlalchemy import text
     since = datetime.now(timezone.utc) - timedelta(days=days)
-    rows = (db.query(func.date(Complaint.created_at).label("date"), func.count().label("count"))
-            .filter(Complaint.created_at >= since)
-            .group_by(func.date(Complaint.created_at))
-            .order_by(func.date(Complaint.created_at))
-            .all())
-    return [TimeSeriesPoint(date=str(r.date), count=r.count) for r in rows]
+    rows = db.execute(
+        text("SELECT strftime('%Y-%m-%d', created_at) as date, count(*) as count FROM complaints WHERE created_at >= :since GROUP BY date ORDER BY date"),
+        {"since": since.isoformat()}
+    ).fetchall()
+    return [TimeSeriesPoint(date=str(r[0]), count=r[1]) for r in rows]
+
 
 
 @router.get("/language-breakdown", response_model=List[LanguageBreakdown])

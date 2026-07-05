@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// In the browser, /api/v1 is proxied by Next.js → http://localhost:8000/api/v1
+// Server-side we use the full URL from env
+const API_BASE =
+  typeof window !== "undefined"
+    ? "/api/v1"
+    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1");
+
 
 export const api = axios.create({
   baseURL: API_BASE,
