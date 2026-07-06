@@ -306,6 +306,23 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
 
     complaint_ref = None
 
+    if result.action == "status":
+        complaint = (db.query(Complaint).filter_by(citizen_id=citizen.id)
+                     .order_by(Complaint.created_at.desc()).first())
+        if not complaint:
+            say = "I don't see any complaints filed from this number. Would you like to file one now?"
+        else:
+            status_map = {"open": "registered and awaiting action", "in_progress": "currently in progress",
+                          "resolved": "resolved", "escalated": "escalated to a senior officer"}
+            say = (f"Your most recent request reference {complaint.complaint_ref} is "
+                   f"{status_map.get(complaint.status, complaint.status)}.")
+        
+        if result.session.language != "en-IN":
+            from app.services.dialogue.manager import translate_text
+            say = await translate_text(say, result.session.language)
+            
+        return {"say": say, "action": "ask", "complaint_ref": None, "language": result.session.language}
+
     if result.action == "submit":
         session = load_session(payload.session_id)
         intent_cfg = INTENTS.get(session.intent, {})
