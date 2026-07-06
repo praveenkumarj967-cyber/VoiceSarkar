@@ -44,6 +44,7 @@ export default function WebPhonePage() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   const recogRef = useRef<any>(null);
+  const sessionRef = useRef("");
 
   useEffect(() => {
     const stored = localStorage.getItem("vs_user");
@@ -119,6 +120,7 @@ export default function WebPhonePage() {
     }
     
     currentUtterance.rate = 1.0;
+    currentUtterance.volume = 1.0; // Force maximum volume
     
     currentUtterance.onend = () => {
       setSpeaking(false);
@@ -138,7 +140,7 @@ export default function WebPhonePage() {
 
   const sendTurn = async (text: string, sid?: string) => {
     setStatus("Thinking...");
-    const activeSession = sid || session;
+    const activeSession = sid || sessionRef.current;
     const token = localStorage.getItem("vs_token");
     
     try {
@@ -179,6 +181,7 @@ export default function WebPhonePage() {
     if (!recogRef.current) return;
     const newSession = `web_${Math.random().toString(36).substring(7)}`;
     setSession(newSession);
+    sessionRef.current = newSession;
     setCurrentLanguage("en-IN");
     recogRef.current.lang = "en-IN";
     setTranscript([{ speaker: "ai", text: "Namaste! Welcome to Voice Sarkar. What language do you prefer?" }]);
@@ -196,6 +199,7 @@ export default function WebPhonePage() {
   const stopCall = () => {
     if (recogRef.current) recogRef.current.stop();
     window.speechSynthesis.cancel();
+    sessionRef.current = "";
     setSession("");
     setListening(false);
     setSpeaking(false);
