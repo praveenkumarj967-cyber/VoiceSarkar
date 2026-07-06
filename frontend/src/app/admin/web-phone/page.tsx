@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 type User = { full_name: string; role: string; email: string };
 type Turn = { speaker: "citizen" | "ai"; text: string };
 
+let currentUtterance: SpeechSynthesisUtterance | null = null;
+
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -74,17 +76,24 @@ export default function WebPhonePage() {
     setSpeaking(true);
     setStatus("AI is speaking...");
     
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN";
-    utterance.rate = 1.0;
+    currentUtterance = new SpeechSynthesisUtterance(text);
+    currentUtterance.lang = "en-IN";
+    currentUtterance.rate = 1.0;
     
-    utterance.onend = () => {
+    currentUtterance.onend = () => {
       setSpeaking(false);
       setStatus("Your turn. Click mic to speak.");
       if (callback) callback();
     };
     
-    window.speechSynthesis.speak(utterance);
+    // Fallback if onend never fires (Chrome bug)
+    currentUtterance.onerror = () => {
+      setSpeaking(false);
+      setStatus("Your turn. Click mic to speak.");
+      if (callback) callback();
+    }
+    
+    window.speechSynthesis.speak(currentUtterance);
   };
 
   const sendTurn = async (text: string, sid?: string) => {
