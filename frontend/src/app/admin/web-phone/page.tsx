@@ -90,33 +90,26 @@ export default function WebPhonePage() {
     setSpeaking(true);
     setStatus("AI is speaking...");
     
-    let textToSpeak = text;
-    
     // Query voices list directly to avoid stale React state closures
     const browserVoices = window.speechSynthesis.getVoices();
-    const langPrefix = lang.split('-')[0].toLowerCase();
-    const matchingVoice = browserVoices.find(v => v.lang.toLowerCase().includes(langPrefix));
     
-    if (matchingVoice) {
-      currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-      currentUtterance.voice = matchingVoice;
-      currentUtterance.lang = matchingVoice.lang;
-    } else {
-      // Fallback to default voice
-      const defaultVoice = browserVoices.find(v => v.default) || browserVoices[0];
-      if (defaultVoice) {
-        // If fallback voice is English and target language is not English,
-        // use the English version so it doesn't fail silently on local scripts
-        if (defaultVoice.lang.startsWith("en") && lang !== "en-IN") {
-          textToSpeak = textEn;
-        }
-        currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-        currentUtterance.voice = defaultVoice;
-        currentUtterance.lang = defaultVoice.lang;
-      } else {
-        currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-        currentUtterance.lang = lang;
-      }
+    // Find a working English voice (guaranteed to exist on Windows/macOS/Linux)
+    const englishVoice = browserVoices.find(v => v.lang.toLowerCase().includes("en-us")) ||
+                         browserVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
+                         browserVoices[0];
+                         
+    let textToSpeak = text;
+    let voiceToUse = englishVoice;
+    
+    if (lang !== "en-IN" && lang !== "en-US") {
+      // Force English fallback text so English TTS voice doesn't fail silently on local scripts
+      textToSpeak = textEn;
+    }
+    
+    currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+    if (voiceToUse) {
+      currentUtterance.voice = voiceToUse;
+      currentUtterance.lang = voiceToUse.lang;
     }
     
     currentUtterance.rate = 1.0;
