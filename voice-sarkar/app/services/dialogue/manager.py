@@ -353,8 +353,8 @@ async def step_conversation(call_sid: str, mobile: str, utterance: str, language
 
         # ── CONFIRMATION ──────────────────────────────────────────────────────────
         elif step == "confirm":
-            yes_words = ["yes", "haan", "ha", "correct", "confirm", "theek", "sahi", "okay", "ok", "right"]
-            no_words = ["no", "nahi", "wrong", "change", "redo", "incorrect"]
+            yes_words = ["yes", "haan", "ha", "correct", "confirm", "theek", "sahi", "okay", "ok", "right", "हाँ", "हा", "जी हाँ", "जी", "అవును", "అవున్", "ఎస్", "ஆம்", "சரி", "ஆமாம்"]
+            no_words = ["no", "nahi", "wrong", "change", "redo", "incorrect", "नहीं", "ना", "नही", "కాదు", "వద్దు", "నో", "இல்லை"]
             utt_lower = utterance.strip().lower()
             if any(w in utt_lower for w in yes_words):
                 session.step = "done"
