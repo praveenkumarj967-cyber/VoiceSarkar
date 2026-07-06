@@ -41,6 +41,7 @@ export default function WebPhonePage() {
   const [speaking, setSpeaking] = useState(false);
   const [status, setStatus] = useState("Click Start Call to begin");
   const [currentLanguage, setCurrentLanguage] = useState("en-IN");
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   
   const recogRef = useRef<any>(null);
 
@@ -49,6 +50,14 @@ export default function WebPhonePage() {
     const token  = localStorage.getItem("vs_token");
     if (!stored || !token) { router.push("/login"); return; }
     setUser(JSON.parse(stored));
+
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const loadVoices = () => {
+        setVoices(window.speechSynthesis.getVoices());
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
 
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRec) {
@@ -79,8 +88,7 @@ export default function WebPhonePage() {
     
     currentUtterance = new SpeechSynthesisUtterance(text);
     
-    // Dynamically find a matching voice to prevent silent failure
-    const voices = window.speechSynthesis.getVoices();
+    // Dynamically find a matching voice from the loaded voices state
     const langPrefix = lang.split('-')[0].toLowerCase();
     const matchingVoice = voices.find(v => v.lang.toLowerCase().includes(langPrefix));
     
