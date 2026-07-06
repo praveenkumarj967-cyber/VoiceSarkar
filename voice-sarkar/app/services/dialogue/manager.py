@@ -287,7 +287,7 @@ async def step_conversation(call_sid: str, mobile: str, utterance: str, language
                 session.step = "await_issue"
                 greeting = GREETINGS.get(detected_lang, GREETINGS["en-IN"])
                 save_session(call_sid, session)
-                result = DialogueResult(say=greeting, action="ask", session=session)
+                result = DialogueResult(say=greeting, say_en=GREETINGS["en-IN"], action="ask", session=session)
             else:
                 session.step = "language_select"
                 save_session(call_sid, session)
@@ -300,7 +300,7 @@ async def step_conversation(call_sid: str, mobile: str, utterance: str, language
             session.step = "await_issue"
             greeting = GREETINGS.get(session.language, GREETINGS["en-IN"])
             save_session(call_sid, session)
-            result = DialogueResult(say=greeting, action="ask", session=session)
+            result = DialogueResult(say=greeting, say_en=GREETINGS["en-IN"], action="ask", session=session)
 
         # ── AWAIT ISSUE ───────────────────────────────────────────────────────────
         elif step == "await_issue":
@@ -397,8 +397,9 @@ async def step_conversation(call_sid: str, mobile: str, utterance: str, language
 
     # Translate AI response if user preferred a local language
     if result and result.say and session.language != "en-IN":
-        result.say_en = result.say
-        result.say = await translate_text(result.say, session.language)
+        if not result.say_en:
+            result.say_en = result.say
+            result.say = await translate_text(result.say, session.language)
 
     return result
 
