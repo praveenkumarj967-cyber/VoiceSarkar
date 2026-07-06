@@ -82,6 +82,8 @@ export default function WebPhonePage() {
 
   const speak = (text: string, lang: string, callback?: () => void) => {
     if (!window.speechSynthesis) { if(callback) callback(); return; }
+    
+    // Chrome bug: Resume synthesis first before cancelling to prevent speech queue lockups
     window.speechSynthesis.resume();
     window.speechSynthesis.cancel();
     setSpeaking(true);
@@ -89,9 +91,10 @@ export default function WebPhonePage() {
     
     let textToSpeak = text;
     
-    // Find a matching voice
+    // Query voices list directly to avoid stale React state closures
+    const browserVoices = window.speechSynthesis.getVoices();
     const langPrefix = lang.split('-')[0].toLowerCase();
-    const matchingVoice = voices.find(v => v.lang.toLowerCase().includes(langPrefix));
+    const matchingVoice = browserVoices.find(v => v.lang.toLowerCase().includes(langPrefix));
     
     if (matchingVoice) {
       currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -99,7 +102,7 @@ export default function WebPhonePage() {
       currentUtterance.lang = matchingVoice.lang;
     } else {
       // Fallback to default voice
-      const defaultVoice = voices.find(v => v.default) || voices[0];
+      const defaultVoice = browserVoices.find(v => v.default) || browserVoices[0];
       if (defaultVoice) {
         // Translate greeting if fallback is English
         if (defaultVoice.lang.startsWith("en") && lang !== "en-IN") {
