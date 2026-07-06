@@ -329,11 +329,11 @@ def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)):
         call.ended_at = datetime.utcnow()
         db.commit()
 
-        return {"say": f"Your complaint has been filed. Reference number is {ref}. Thank you!", "action": "done", "complaint_ref": ref}
+        return {"say": f"Your complaint has been filed. Reference number is {ref}. Thank you!", "action": "done", "complaint_ref": ref, "language": result.session.language}
         
     elif result.action in ("cancel", "escalate"):
         call.outcome = result.action
         call.ended_at = datetime.utcnow()
         db.commit()
         
-    return {"say": result.say, "action": result.action, "complaint_ref": None}
+    return {"say": result.say, "action": result.action, "complaint_ref": None, "language": result.session.language}

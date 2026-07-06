@@ -40,6 +40,7 @@ export default function WebPhonePage() {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [status, setStatus] = useState("Click Start Call to begin");
+  const [currentLanguage, setCurrentLanguage] = useState("en-IN");
   
   const recogRef = useRef<any>(null);
 
@@ -70,14 +71,14 @@ export default function WebPhonePage() {
     }
   }, [router]);
 
-  const speak = (text: string, callback?: () => void) => {
+  const speak = (text: string, lang: string, callback?: () => void) => {
     if (!window.speechSynthesis) { if(callback) callback(); return; }
     window.speechSynthesis.cancel();
     setSpeaking(true);
     setStatus("AI is speaking...");
     
     currentUtterance = new SpeechSynthesisUtterance(text);
-    currentUtterance.lang = "en-IN";
+    currentUtterance.lang = lang;
     currentUtterance.rate = 1.0;
     
     currentUtterance.onend = () => {
@@ -109,17 +110,23 @@ export default function WebPhonePage() {
           session_id: activeSession,
           mobile: "+919876543210",
           utterance: text,
-          language: "en-IN"
+          language: currentLanguage
         })
       });
       const data = await res.json();
       setTranscript(p => [...p, { speaker: "ai", text: data.say }]);
       
+      const newLang = data.language || currentLanguage;
+      setCurrentLanguage(newLang);
+      if (recogRef.current) {
+        recogRef.current.lang = newLang;
+      }
+      
       if (data.action === "done") {
         setStatus(`Call Ended. Complaint Ref: ${data.complaint_ref}`);
-        speak(data.say);
+        speak(data.say, newLang);
       } else {
-        speak(data.say, () => {
+        speak(data.say, newLang, () => {
           // Auto listen after AI finishes speaking
           if (recogRef.current) recogRef.current.start();
         });
@@ -133,9 +140,11 @@ export default function WebPhonePage() {
     if (!recogRef.current) return;
     const newSession = `web_${Math.random().toString(36).substring(7)}`;
     setSession(newSession);
+    setCurrentLanguage("en-IN");
+    recogRef.current.lang = "en-IN";
     setTranscript([{ speaker: "ai", text: "Namaste! Welcome to Voice Sarkar. What language do you prefer?" }]);
     
-    speak("Namaste! Welcome to Voice Sarkar. What language do you prefer?", () => {
+    speak("Namaste! Welcome to Voice Sarkar. What language do you prefer?", "en-IN", () => {
       recogRef.current.start();
     });
   };
