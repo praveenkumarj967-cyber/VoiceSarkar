@@ -78,7 +78,26 @@ export default function WebPhonePage() {
     setStatus("AI is speaking...");
     
     currentUtterance = new SpeechSynthesisUtterance(text);
-    currentUtterance.lang = lang;
+    
+    // Dynamically find a matching voice to prevent silent failure
+    const voices = window.speechSynthesis.getVoices();
+    const langPrefix = lang.split('-')[0].toLowerCase();
+    const matchingVoice = voices.find(v => v.lang.toLowerCase().includes(langPrefix));
+    
+    if (matchingVoice) {
+      currentUtterance.voice = matchingVoice;
+      currentUtterance.lang = matchingVoice.lang;
+    } else {
+      // Fallback to default voice so it at least speaks, even if with an accent
+      const defaultVoice = voices.find(v => v.default) || voices[0];
+      if (defaultVoice) {
+        currentUtterance.voice = defaultVoice;
+        currentUtterance.lang = defaultVoice.lang;
+      } else {
+        currentUtterance.lang = lang;
+      }
+    }
+    
     currentUtterance.rate = 1.0;
     
     currentUtterance.onend = () => {
