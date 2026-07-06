@@ -96,7 +96,7 @@ async def voice_gather(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     # Advance dialogue
-    result = step_conversation(call_sid, call.from_number, speech_result, call.language)
+    result = await step_conversation(call_sid, call.from_number, speech_result, call.language)
     citizen = db.query(Citizen).filter_by(id=call.citizen_id).first()
 
     gather_url = f"{settings.public_base_url}/api/v1/voice/gather?CallSid={call_sid}"
@@ -214,7 +214,7 @@ async def recording_callback(request: Request, db: Session = Depends(get_db)):
 # ─── Simulation Endpoint ─────────────────────────────────────────────────────
 
 @router.post("/simulate", response_model=VoiceSimulateResponse)
-def simulate_voice_call(payload: VoiceSimulateRequest, db: Session = Depends(get_db)):
+async def simulate_voice_call(payload: VoiceSimulateRequest, db: Session = Depends(get_db)):
     """
     Simulate a complete voice call without real telephony.
     Runs through the dialogue engine with provided utterances.
@@ -239,7 +239,7 @@ def simulate_voice_call(payload: VoiceSimulateRequest, db: Session = Depends(get
 
     for utterance in payload.utterances:
         transcript.append({"speaker": "citizen", "text": utterance})
-        result = step_conversation(call_sid, mobile, utterance, language)
+        result = await step_conversation(call_sid, mobile, utterance, language)
 
         if result.say:
             transcript.append({"speaker": "ai", "text": result.say})
@@ -284,9 +284,9 @@ def simulate_voice_call(payload: VoiceSimulateRequest, db: Session = Depends(get
     )
 
 @router.post("/web-phone")
-def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)):
+async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)):
     """Single turn interaction for the browser-based web phone."""
-    result = step_conversation(payload.session_id, payload.mobile, payload.utterance, payload.language)
+    result = await step_conversation(payload.session_id, payload.mobile, payload.utterance, payload.language)
     
     citizen = _get_or_create_citizen(db, payload.mobile)
     

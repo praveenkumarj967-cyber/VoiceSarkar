@@ -82,29 +82,26 @@ export default function WebPhonePage() {
 
   const speak = (text: string, lang: string, callback?: () => void) => {
     if (!window.speechSynthesis) { if(callback) callback(); return; }
+    window.speechSynthesis.resume();
     window.speechSynthesis.cancel();
     setSpeaking(true);
     setStatus("AI is speaking...");
     
-    currentUtterance = new SpeechSynthesisUtterance(text);
+    let textToSpeak = text;
     
-    // Dynamically find a matching voice from the loaded voices state
+    // Find a matching voice
     const langPrefix = lang.split('-')[0].toLowerCase();
     const matchingVoice = voices.find(v => v.lang.toLowerCase().includes(langPrefix));
     
-    let textToSpeak = text;
     if (matchingVoice) {
+      currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
       currentUtterance.voice = matchingVoice;
       currentUtterance.lang = matchingVoice.lang;
     } else {
-      // Fallback to default voice so it at least speaks, even if with an accent
+      // Fallback to default voice
       const defaultVoice = voices.find(v => v.default) || voices[0];
       if (defaultVoice) {
-        currentUtterance.voice = defaultVoice;
-        currentUtterance.lang = defaultVoice.lang;
-        
-        // If the fallback voice is English but we are speaking Hindi/Telugu/Tamil,
-        // use the English phonetic greeting so it doesn't fail silently on Devanagari/Dravidian scripts
+        // Translate greeting if fallback is English
         if (defaultVoice.lang.startsWith("en") && lang !== "en-IN") {
           if (text.includes("नमस्ते") || text.includes("स्वागत")) {
             textToSpeak = "Namaste! Welcome to Voice Sarkar. I am here to help you access government services. Please tell me — what issue are you facing today?";
@@ -114,18 +111,13 @@ export default function WebPhonePage() {
             textToSpeak = "Namaste! Welcome to Voice Sarkar. Which government service do you need?";
           }
         }
+        currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+        currentUtterance.voice = defaultVoice;
+        currentUtterance.lang = defaultVoice.lang;
       } else {
+        currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
         currentUtterance.lang = lang;
       }
-    }
-    
-    // Re-create utterance with the corrected text to speak
-    currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-    if (matchingVoice) {
-      currentUtterance.voice = matchingVoice;
-    } else {
-      const defaultVoice = voices.find(v => v.default) || voices[0];
-      if (defaultVoice) currentUtterance.voice = defaultVoice;
     }
     
     currentUtterance.rate = 1.0;
@@ -136,12 +128,12 @@ export default function WebPhonePage() {
       if (callback) callback();
     };
     
-    // Fallback if onend never fires (Chrome bug)
-    currentUtterance.onerror = () => {
+    currentUtterance.onerror = (e: any) => {
+      console.error("SpeechSynthesis Error:", e);
       setSpeaking(false);
-      setStatus("Your turn. Click mic to speak.");
+      setStatus(`Speaker error: ${e.error || "unknown"}. Click mic to speak.`);
       if (callback) callback();
-    }
+    };
     
     window.speechSynthesis.speak(currentUtterance);
   };
