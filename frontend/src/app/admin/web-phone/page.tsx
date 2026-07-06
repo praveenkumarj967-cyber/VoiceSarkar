@@ -81,7 +81,7 @@ export default function WebPhonePage() {
     }
   }, [router]);
 
-  const speak = (text: string, textEn: string, lang: string, callback?: () => void) => {
+  const playBrowserTTS = (text: string, textEn: string, lang: string, callback?: () => void) => {
     if (!window.speechSynthesis) { if(callback) callback(); return; }
     
     // Chrome bug: Resume synthesis first before cancelling to prevent speech queue lockups
@@ -90,10 +90,8 @@ export default function WebPhonePage() {
     setSpeaking(true);
     setStatus("AI is speaking...");
     
-    // Query voices list directly to avoid stale React state closures
     const browserVoices = window.speechSynthesis.getVoices();
     
-    // Find a working English voice (guaranteed to exist on Windows/macOS/Linux)
     const englishVoice = browserVoices.find(v => v.lang.toLowerCase().includes("en-us")) ||
                          browserVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
                          browserVoices[0];
@@ -102,7 +100,6 @@ export default function WebPhonePage() {
     let voiceToUse = englishVoice;
     
     if (lang !== "en-IN" && lang !== "en-US") {
-      // Force English fallback text so English TTS voice doesn't fail silently on local scripts
       textToSpeak = textEn;
     }
     
@@ -113,7 +110,7 @@ export default function WebPhonePage() {
     }
     
     currentUtterance.rate = 1.0;
-    currentUtterance.volume = 1.0; // Force maximum volume
+    currentUtterance.volume = 1.0;
     
     currentUtterance.onend = () => {
       setSpeaking(false);
@@ -129,6 +126,35 @@ export default function WebPhonePage() {
     };
     
     window.speechSynthesis.speak(currentUtterance);
+  };
+
+  const speak = (text: string, textEn: string, lang: string, callback?: () => void) => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    
+    const langPrefix = lang.split('-')[0].toLowerCase();
+    const ttsUrl = `http://localhost:8000/api/v1/voice/tts?text=${encodeURIComponent(text)}&lang=${langPrefix}`;
+    const audio = new Audio(ttsUrl);
+    
+    setSpeaking(true);
+    setStatus("AI is speaking (Bhashini)...");
+    
+    audio.onended = () => {
+      setSpeaking(false);
+      setStatus("Your turn. Click mic to speak.");
+      if (callback) callback();
+    };
+    
+    audio.onerror = () => {
+      console.warn("Bhashini TTS failed/mock mode. Falling back to browser SpeechSynthesis.");
+      playBrowserTTS(text, textEn, lang, callback);
+    };
+    
+    audio.play().catch(err => {
+      console.warn("Bhashini playback failed. Falling back to browser SpeechSynthesis.", err);
+      playBrowserTTS(text, textEn, lang, callback);
+    });
   };
 
   const sendTurn = async (text: string, sid?: string) => {

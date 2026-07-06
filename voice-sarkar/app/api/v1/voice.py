@@ -361,3 +361,18 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
         db.commit()
         
     return {"say": result.say, "say_en": result.say_en or result.say, "action": result.action, "complaint_ref": None, "language": result.session.language}
+
+
+@router.get("/tts")
+async def get_tts(text: str, lang: str):
+    """Generate TTS audio using Bhashini client."""
+    from app.services.bhashini.client import get_bhashini_client, MockBhashiniClient
+    from fastapi import HTTPException
+    client = get_bhashini_client()
+    if isinstance(client, MockBhashiniClient):
+        raise HTTPException(status_code=400, detail="Bhashini credentials not set (Mock mode)")
+    try:
+        audio_bytes = await client.text_to_speech(text, lang)
+        return Response(content=audio_bytes, media_type="audio/wav")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
