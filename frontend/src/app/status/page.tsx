@@ -1,133 +1,102 @@
 "use client";
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { complaintsApi } from "@/lib/api";
-import { Badge, PriorityBadge } from "@/components/ui";
-import { format } from "date-fns";
-import Link from "next/link";
+import { useState } from "react";
 
-type StatusResult = {
-  complaint_ref: string; intent: string; status: string;
-  target_portal: string; created_at: string; updated_at: string;
+type PublicStatus = {
+  complaint_ref: string; intent: string; status: string; created_at: string; updated_at: string; target_portal: string; portal_reference_id?: string;
+  status_history?: Array<{ status: string; changed_at: string }>;
 };
 
-function StatusChecker() {
-  const searchParams = useSearchParams();
-  const [ref, setRef]         = useState(searchParams.get("ref") || "");
-  const [result, setResult]   = useState<StatusResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+const S = {
+  page: { minHeight: "100vh", background: "#0a0a0f", display: "flex", flexDirection: "column" as const, fontFamily: "'Segoe UI', system-ui, sans-serif", color: "#f0f0f0" } as React.CSSProperties,
+  header: { padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.2)" } as React.CSSProperties,
+  main: { flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
+  card: { width: "100%", maxWidth: 600, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "32px", boxShadow: "0 20px 40px rgba(0,0,0,0.3)" } as React.CSSProperties,
+  input: { flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", color: "#f0f0f0", fontSize: 16, outline: "none" } as React.CSSProperties,
+  btn: (disabled: boolean) => ({ padding: "14px 24px", background: disabled ? "#374151" : "linear-gradient(135deg,#FF9933,#e8831c)", color: "white", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", flexShrink: 0 }) as React.CSSProperties,
+};
 
-  const check = async () => {
+function StatusBadge({ status }: { status: string }) {
+  const colors: Record<string, [string, string]> = { open: ["#60a5fa", "rgba(59,130,246,0.15)"], in_progress: ["#facc15", "rgba(234,179,8,0.15)"], resolved: ["#4ade80", "rgba(34,197,94,0.15)"], escalated: ["#f87171", "rgba(239,68,68,0.15)"], failed: ["#9ca3af", "rgba(107,114,128,0.15)"] };
+  const [color, bg] = colors[status] || colors.open;
+  return <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 13, fontWeight: 700, textTransform: "uppercase" as const, background: bg, color, border: `1px solid ${color}33` }}>{status.replace("_", " ")}</span>;
+}
+
+export default function StatusCheckPage() {
+  const [ref, setRef] = useState("");
+  const [result, setResult] = useState<PublicStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const checkStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!ref.trim()) return;
     setLoading(true); setError(""); setResult(null);
     try {
-      const { data } = await complaintsApi.getPublic(ref.trim());
+      const res = await fetch(`http://localhost:8000/api/v1/complaints/public/${ref.trim()}`);
+      if (!res.ok) { setError("Complaint not found or invalid reference number."); return; }
+      const data = await res.json();
       setResult(data);
-    } catch {
-      setError("Complaint not found. Please check the reference number and try again.");
-    } finally { setLoading(false); }
+    } catch { setError("Failed to connect to the server."); } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen hero-bg flex flex-col items-center justify-center px-4 py-16">
-      {/* Header */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl text-2xl mb-4"
-             style={{ background:"linear-gradient(135deg,#FF9933,#138808)", boxShadow:"0 0 30px rgba(255,153,51,0.3)" }}>
-          🎙️
-        </div>
-        <h1 className="text-3xl font-bold mb-2">Check Complaint Status</h1>
-        <p className="text-gray-400">Enter the reference number from your SMS to track your complaint.</p>
-      </div>
+    <div style={S.page}>
+      <header style={S.header}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "white" }}>
+          <span style={{ fontSize: 24 }}>🎙️</span><span style={{ fontWeight: 800, fontSize: 18 }}>Voice Sarkar</span>
+        </a>
+        <a href="/login" style={{ color: "#9ca3af", textDecoration: "none", fontSize: 14 }}>Officer Login →</a>
+      </header>
 
-      {/* Search */}
-      <div className="glass p-8 w-full max-w-lg">
-        <label className="block text-sm text-gray-400 mb-2">Complaint Reference Number</label>
-        <input
-          id="ref-input"
-          className="input-field mb-4"
-          placeholder="e.g. VS-PEN-2026-AB12CD"
-          value={ref}
-          onChange={(e) => setRef(e.target.value.toUpperCase())}
-          onKeyDown={(e) => e.key === "Enter" && check()}
-        />
-        <button onClick={check} disabled={loading || !ref.trim()} className="btn-primary w-full">
-          {loading ? "Checking..." : "Track Complaint →"}
-        </button>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="mt-4 p-4 rounded-xl text-sm max-w-lg w-full"
-             style={{ background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.3)", color:"#f87171" }}>
-          {error}
-        </div>
-      )}
-
-      {/* Result */}
-      {result && (
-        <div className="glass p-8 w-full max-w-lg mt-4">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="font-mono text-orange-400 text-sm mb-1">{result.complaint_ref}</div>
-              <h2 className="text-xl font-bold capitalize">{result.intent.replace("_"," ")} Complaint</h2>
-            </div>
-            <Badge status={result.status} />
+      <main style={S.main}>
+        <div style={S.card}>
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <h1 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px" }}>Check Complaint Status</h1>
+            <p style={{ color: "#9ca3af", margin: 0 }}>Enter your Voice Sarkar reference number (e.g. VS-1234567890)</p>
           </div>
 
-          {/* Status progress */}
-          <div className="mb-6">
-            {["open","in_progress","resolved"].map((s, i) => {
-              const steps = ["open","in_progress","resolved"];
-              const current = steps.indexOf(result.status);
-              const isActive = i <= current;
-              const isDone = i < current;
-              return (
-                <div key={s} className="flex items-center gap-3 mb-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 ${
-                    isDone ? "bg-orange-500 border-orange-500" :
-                    isActive ? "border-orange-500 text-orange-500" : "border-gray-700 text-gray-700"
-                  }`}>
-                    {isDone ? "✓" : i + 1}
-                  </div>
-                  <div className={`text-sm capitalize ${isActive ? "text-white font-medium" : "text-gray-600"}`}>
-                    {s.replace("_"," ")}
+          <form onSubmit={checkStatus} style={{ display: "flex", gap: 12, marginBottom: 32 }}>
+            <input placeholder="VS-..." value={ref} onChange={e => setRef(e.target.value)} style={S.input} />
+            <button type="submit" disabled={loading} style={S.btn(loading)}>{loading ? "Checking…" : "Check Status"}</button>
+          </form>
+
+          {error && <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 12, padding: "16px", color: "#f87171", textAlign: "center" }}>⚠️ {error}</div>}
+
+          {result && (
+            <div style={{ background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 24 }}>
+                <div>
+                  <div style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}>Reference Number</div>
+                  <div style={{ fontFamily: "monospace", color: "#FF9933", fontSize: 18, fontWeight: 700 }}>{result.complaint_ref}</div>
+                </div>
+                <StatusBadge status={result.status} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 24 }}>
+                <div><div style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}>Service Type</div><div style={{ textTransform: "capitalize", fontWeight: 600 }}>{result.intent.replace("_", " ")}</div></div>
+                <div><div style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}>Date Filed</div><div style={{ fontWeight: 600 }}>{new Date(result.created_at).toLocaleDateString("en-IN")}</div></div>
+                <div><div style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}>Gov Portal</div><div style={{ fontWeight: 600 }}>{result.target_portal}</div></div>
+                <div><div style={{ color: "#6b7280", fontSize: 13, marginBottom: 4 }}>Last Update</div><div style={{ fontWeight: 600 }}>{new Date(result.updated_at).toLocaleDateString("en-IN")}</div></div>
+              </div>
+
+              {result.status_history && result.status_history.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 600, color: "#9ca3af", marginBottom: 12 }}>Tracking History</h3>
+                  <div style={{ paddingLeft: 12, borderLeft: "2px solid rgba(255,255,255,0.1)" }}>
+                    {result.status_history.map((h, i) => (
+                      <div key={i} style={{ marginBottom: i === result.status_history!.length - 1 ? 0 : 16, position: "relative" }}>
+                        <div style={{ position: "absolute", left: -17, top: 4, width: 8, height: 8, borderRadius: "50%", background: "#0a0a0f", border: "2px solid #6b7280" }} />
+                        <div style={{ fontSize: 13, fontWeight: 600, textTransform: "capitalize", marginBottom: 2 }}>{h.status.replace("_", " ")}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>{new Date(h.changed_at).toLocaleString("en-IN")}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <dl className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Portal</dt>
-              <dd className="text-right max-w-[60%]">{result.target_portal}</dd>
+              )}
             </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Filed on</dt>
-              <dd>{format(new Date(result.created_at), "dd MMM yyyy, HH:mm")}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-500">Last updated</dt>
-              <dd>{format(new Date(result.updated_at), "dd MMM yyyy, HH:mm")}</dd>
-            </div>
-          </dl>
-
-          <div className="mt-6 p-3 rounded-lg text-xs text-center"
-               style={{ background:"rgba(255,153,51,0.08)", border:"1px solid rgba(255,153,51,0.15)", color:"#FF9933" }}>
-            Call <strong>1800-XXX-XXXX</strong> anytime for live status updates
-          </div>
+          )}
         </div>
-      )}
-
-      <Link href="/" className="mt-8 text-sm text-gray-600 hover:text-white transition-colors">
-        ← Back to Voice Sarkar home
-      </Link>
+      </main>
     </div>
   );
-}
-
-export default function StatusPage() {
-  return <Suspense><StatusChecker /></Suspense>;
 }
