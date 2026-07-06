@@ -135,8 +135,10 @@ class MockBhashiniClient:
 
 
 def get_bhashini_client():
-    """Returns real client if credentials exist, else mock."""
-    if settings.bhashini_user_id and settings.bhashini_ulca_api_key:
+    """Returns real client if credentials exist and are not placeholders, else mock."""
+    uid = settings.bhashini_user_id
+    key = settings.bhashini_ulca_api_key
+    if uid and key and "your_" not in uid and "your_" not in key:
         return BhashiniClient()
     logger.warning("Bhashini credentials not configured — using MockBhashiniClient")
     return MockBhashiniClient()

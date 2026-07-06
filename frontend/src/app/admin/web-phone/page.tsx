@@ -91,15 +91,23 @@ export default function WebPhonePage() {
     setStatus("AI is speaking...");
     
     const browserVoices = window.speechSynthesis.getVoices();
+    const langPrefix = lang.split('-')[0].toLowerCase();
     
-    const englishVoice = browserVoices.find(v => v.lang.toLowerCase().includes("en-us")) ||
-                         browserVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
-                         browserVoices[0];
-                         
+    // Check if the browser has a working voice for the preferred language (e.g. Telugu)
+    const matchingVoice = browserVoices.find(v => v.lang.toLowerCase().includes(langPrefix));
+    
     let textToSpeak = text;
-    let voiceToUse = englishVoice;
+    let voiceToUse = null;
     
-    if (lang !== "en-IN" && lang !== "en-US") {
+    if (matchingVoice) {
+      voiceToUse = matchingVoice;
+      textToSpeak = text; // Speak the localized text directly
+    } else {
+      // Fallback to English voice and speak English translation
+      const englishVoice = browserVoices.find(v => v.lang.toLowerCase().includes("en-us")) ||
+                           browserVoices.find(v => v.lang.toLowerCase().startsWith("en")) ||
+                           browserVoices[0];
+      voiceToUse = englishVoice;
       textToSpeak = textEn;
     }
     
