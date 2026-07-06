@@ -92,6 +92,7 @@ export default function WebPhonePage() {
     const langPrefix = lang.split('-')[0].toLowerCase();
     const matchingVoice = voices.find(v => v.lang.toLowerCase().includes(langPrefix));
     
+    let textToSpeak = text;
     if (matchingVoice) {
       currentUtterance.voice = matchingVoice;
       currentUtterance.lang = matchingVoice.lang;
@@ -101,9 +102,30 @@ export default function WebPhonePage() {
       if (defaultVoice) {
         currentUtterance.voice = defaultVoice;
         currentUtterance.lang = defaultVoice.lang;
+        
+        // If the fallback voice is English but we are speaking Hindi/Telugu/Tamil,
+        // use the English phonetic greeting so it doesn't fail silently on Devanagari/Dravidian scripts
+        if (defaultVoice.lang.startsWith("en") && lang !== "en-IN") {
+          if (text.includes("नमस्ते") || text.includes("स्वागत")) {
+            textToSpeak = "Namaste! Welcome to Voice Sarkar. I am here to help you access government services. Please tell me — what issue are you facing today?";
+          } else if (text.includes("నమస్కారం") || text.includes("స్వాగతం")) {
+            textToSpeak = "Namaste! Welcome to Voice Sarkar. Which government service do you need?";
+          } else if (text.includes("வணக்கம்") || text.includes("வரவேற்கிறோம்")) {
+            textToSpeak = "Namaste! Welcome to Voice Sarkar. Which government service do you need?";
+          }
+        }
       } else {
         currentUtterance.lang = lang;
       }
+    }
+    
+    // Re-create utterance with the corrected text to speak
+    currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+    if (matchingVoice) {
+      currentUtterance.voice = matchingVoice;
+    } else {
+      const defaultVoice = voices.find(v => v.default) || voices[0];
+      if (defaultVoice) currentUtterance.voice = defaultVoice;
     }
     
     currentUtterance.rate = 1.0;
