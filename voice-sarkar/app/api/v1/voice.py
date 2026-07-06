@@ -13,6 +13,14 @@ from app.models import Complaint, StatusHistory, Notification
 from app.models.call import Call, ConversationTurn
 from app.models.citizen import Citizen
 from app.schemas.complaint import VoiceSimulateRequest, VoiceSimulateResponse
+from pydantic import BaseModel
+
+class WebPhoneRequest(BaseModel):
+    session_id: str
+    mobile: str
+    utterance: str
+    language: str
+
 from app.services.dialogue.manager import step_conversation, load_session, clear_session
 from app.services.gov_portals.adapters import get_portal_adapter
 from app.services.ai.intent_engine import INTENTS, INTENT_PREFIX_MAP
@@ -274,3 +282,58 @@ def simulate_voice_call(payload: VoiceSimulateRequest, db: Session = Depends(get
         complaint_ref=complaint_ref,
         final_status=final_status,
     )
+
+@router.post("/web-phone")
+def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)):
+    """Single turn interaction for the browser-based web phone."""
+    result = step_conversation(payload.session_id, payload.mobile, payload.utterance, payload.language)
+    
+    citizen = _get_or_create_citizen(db, payload.mobile)
+    
+    # Ensure call exists for this session
+    call = db.query(Call).filter_by(telephony_call_sid=payload.session_id).first()
+    if not call:
+        call = Call(telephony_call_sid=payload.session_id, citizen_id=citizen.id, from_number=payload.mobile,
+                    language=payload.language, provider="web_phone")
+        db.add(call)
+        db.commit()
+
+    # Log turns
+    turn_count = db.query(ConversationTurn).filter_by(call_id=call.id).count()
+    db.add(ConversationTurn(call_id=call.id, turn_index=turn_count, speaker="citizen", raw_asr_text=payload.utterance))
+    db.add(ConversationTurn(call_id=call.id, turn_index=turn_count+1, speaker="ai", raw_asr_text=result.say, detected_intent=result.intent))
+    db.commit()
+
+    complaint_ref = None
+
+    if result.action == "submit":
+        session = load_session(payload.session_id)
+        intent_cfg = INTENTS.get(session.intent, {})
+        adapter = get_portal_adapter(session.intent)
+        submission = adapter.submit(session.intent, session.slots, payload.mobile)
+        ref = _gen_ref(session.intent)
+        complaint = Complaint(
+            complaint_ref=ref, citizen_id=citizen.id, call_id=call.id,
+            intent=session.intent, slots=session.slots,
+            target_portal=intent_cfg.get("portal", "Unknown"),
+            portal_reference_id=submission.portal_reference_id,
+            submission_mode="web_phone", priority=intent_cfg.get("priority", "medium"), status="open",
+        )
+        db.add(complaint)
+        db.add(StatusHistory(complaint_id=complaint.id, status="open", changed_by="system", note="Filed via web phone"))
+        db.commit()
+        complaint_ref = ref
+        clear_session(payload.session_id)
+        
+        call.outcome = "complaint_filed"
+        call.ended_at = datetime.utcnow()
+        db.commit()
+
+        return {"say": f"Your complaint has been filed. Reference number is {ref}. Thank you!", "action": "done", "complaint_ref": ref}
+        
+    elif result.action in ("cancel", "escalate"):
+        call.outcome = result.action
+        call.ended_at = datetime.utcnow()
+        db.commit()
+        
+    return {"say": result.say, "action": result.action, "complaint_ref": None}
