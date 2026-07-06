@@ -80,7 +80,7 @@ export default function WebPhonePage() {
     }
   }, [router]);
 
-  const speak = (text: string, lang: string, callback?: () => void) => {
+  const speak = (text: string, textEn: string, lang: string, callback?: () => void) => {
     if (!window.speechSynthesis) { if(callback) callback(); return; }
     
     // Chrome bug: Resume synthesis first before cancelling to prevent speech queue lockups
@@ -104,15 +104,10 @@ export default function WebPhonePage() {
       // Fallback to default voice
       const defaultVoice = browserVoices.find(v => v.default) || browserVoices[0];
       if (defaultVoice) {
-        // Translate greeting if fallback is English
+        // If fallback voice is English and target language is not English,
+        // use the English version so it doesn't fail silently on local scripts
         if (defaultVoice.lang.startsWith("en") && lang !== "en-IN") {
-          if (text.includes("नमस्ते") || text.includes("स्वागत")) {
-            textToSpeak = "Namaste! Welcome to Voice Sarkar. I am here to help you access government services. Please tell me — what issue are you facing today?";
-          } else if (text.includes("నమస్కారం") || text.includes("స్వాగతం")) {
-            textToSpeak = "Namaste! Welcome to Voice Sarkar. Which government service do you need?";
-          } else if (text.includes("வணக்கம்") || text.includes("வரவேற்கிறோம்")) {
-            textToSpeak = "Namaste! Welcome to Voice Sarkar. Which government service do you need?";
-          }
+          textToSpeak = textEn;
         }
         currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
         currentUtterance.voice = defaultVoice;
@@ -168,9 +163,9 @@ export default function WebPhonePage() {
       
       if (data.action === "done") {
         setStatus(`Call Ended. Complaint Ref: ${data.complaint_ref}`);
-        speak(data.say, newLang);
+        speak(data.say, data.say_en || data.say, newLang);
       } else {
-        speak(data.say, newLang, () => {
+        speak(data.say, data.say_en || data.say, newLang, () => {
           // Auto listen after AI finishes speaking
           if (recogRef.current) recogRef.current.start();
         });
@@ -188,9 +183,14 @@ export default function WebPhonePage() {
     recogRef.current.lang = "en-IN";
     setTranscript([{ speaker: "ai", text: "Namaste! Welcome to Voice Sarkar. What language do you prefer?" }]);
     
-    speak("Namaste! Welcome to Voice Sarkar. What language do you prefer?", "en-IN", () => {
-      recogRef.current.start();
-    });
+    speak(
+      "Namaste! Welcome to Voice Sarkar. What language do you prefer?",
+      "Namaste! Welcome to Voice Sarkar. What language do you prefer?",
+      "en-IN",
+      () => {
+        recogRef.current.start();
+      }
+    );
   };
 
   const stopCall = () => {

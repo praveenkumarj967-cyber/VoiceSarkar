@@ -317,11 +317,12 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
             say = (f"Your most recent request reference {complaint.complaint_ref} is "
                    f"{status_map.get(complaint.status, complaint.status)}.")
         
+        say_en = say
         if result.session.language != "en-IN":
             from app.services.dialogue.manager import translate_text
             say = await translate_text(say, result.session.language)
             
-        return {"say": say, "action": "ask", "complaint_ref": None, "language": result.session.language}
+        return {"say": say, "say_en": say_en, "action": "ask", "complaint_ref": None, "language": result.session.language}
 
     if result.action == "submit":
         session = load_session(payload.session_id)
@@ -345,12 +346,18 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
         call.outcome = "complaint_filed"
         call.ended_at = datetime.utcnow()
         db.commit()
+        
+        say_en = f"Your complaint has been filed. Reference number is {ref}. Thank you!"
+        say = say_en
+        if result.session.language != "en-IN":
+            from app.services.dialogue.manager import translate_text
+            say = await translate_text(say, result.session.language)
 
-        return {"say": f"Your complaint has been filed. Reference number is {ref}. Thank you!", "action": "done", "complaint_ref": ref, "language": result.session.language}
+        return {"say": say, "say_en": say_en, "action": "done", "complaint_ref": ref, "language": result.session.language}
         
     elif result.action in ("cancel", "escalate"):
         call.outcome = result.action
         call.ended_at = datetime.utcnow()
         db.commit()
         
-    return {"say": result.say, "action": result.action, "complaint_ref": None, "language": result.session.language}
+    return {"say": result.say, "say_en": result.say_en or result.say, "action": result.action, "complaint_ref": None, "language": result.session.language}

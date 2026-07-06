@@ -89,6 +89,7 @@ class DialogueResult:
     session: DialogueSession
     intent: Optional[str] = None
     confidence: float = 0.0
+    say_en: Optional[str] = None
 
 
 # ── Session Store ─────────────────────────────────────────────────────────────
@@ -396,6 +397,7 @@ async def step_conversation(call_sid: str, mobile: str, utterance: str, language
 
     # Translate AI response if user preferred a local language
     if result and result.say and session.language != "en-IN":
+        result.say_en = result.say
         result.say = await translate_text(result.say, session.language)
 
     return result
