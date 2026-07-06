@@ -338,7 +338,7 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
             submission_mode="web_phone", priority=intent_cfg.get("priority", "medium"), status="open",
         )
         db.add(complaint)
-        db.add(StatusHistory(complaint_id=complaint.id, status="open", changed_by="system", note="Filed via web phone"))
+        db.add(StatusHistory(complaint=complaint, status="open", changed_by="system", note="Filed via web phone"))
         db.commit()
         complaint_ref = ref
         clear_session(payload.session_id)

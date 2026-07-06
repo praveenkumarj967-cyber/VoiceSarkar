@@ -240,7 +240,19 @@ async def translate_text(text: str, target_lang: str) -> str:
         from app.services.bhashini.client import get_bhashini_client, MockBhashiniClient
         client = get_bhashini_client()
         if isinstance(client, MockBhashiniClient):
-            return get_local_translation(text, target_lang)
+            import urllib.parse
+            import httpx
+            lang_prefix = target_lang.split('-')[0].lower()
+            encoded_text = urllib.parse.quote(text)
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl={lang_prefix}&dt=t&q={encoded_text}"
+            async with httpx.AsyncClient(timeout=10) as http_client:
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                resp = await http_client.get(url, headers=headers)
+                resp.raise_for_status()
+                data = resp.json()
+                translated_parts = [part[0] for part in data[0] if part and part[0]]
+                return "".join(translated_parts)
+                
         return await client.translate(text, "en-IN", target_lang)
     except Exception:
         return get_local_translation(text, target_lang)
