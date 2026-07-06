@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 INTENTS: Dict[str, Dict[str, Any]] = {
     "pension": {
         "label": "Pension Grievance",
-        "keywords": ["pension", "widow", "vridha", "old age", "pensioner", "retirement", "annuity"],
+        "keywords": ["pension", "widow", "vridha", "old age", "pensioner", "retirement", "annuity", "पेंशन", "పెన్షన్", "பென்ஷன்"],
         "slots": ["name", "pension_type", "months_pending", "address"],
         "prompts": {
             "name": "Could you tell me your full name as registered for the pension?",
@@ -30,7 +30,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "electricity": {
         "label": "Electricity Complaint",
-        "keywords": ["electricity", "bijli", "power cut", "no light", "transformer", "meter", "bill", "shock", "wire"],
+        "keywords": ["electricity", "bijli", "power cut", "no light", "transformer", "meter", "bill", "shock", "wire", "बिजली", "करंट", "connection", "కరెంట్", "மின்சாரம்"],
         "slots": ["name", "consumer_number", "issue_detail", "address"],
         "prompts": {
             "name": "What name is on the electricity connection?",
@@ -43,7 +43,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "water": {
         "label": "Water Supply Complaint",
-        "keywords": ["water", "pani", "no water", "leakage", "pipeline", "tap", "drinking", "supply"],
+        "keywords": ["water", "pani", "no water", "leakage", "pipeline", "tap", "drinking", "supply", "पानी", "जल", "नीरु", "నీరు", "தண்ணீர்", "குடிநீர்"],
         "slots": ["name", "ward_number", "issue_detail"],
         "prompts": {
             "name": "May I have your name?",
@@ -55,7 +55,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "ration": {
         "label": "Ration Card / PDS Issue",
-        "keywords": ["ration", "pds", "ration card", "food grain", "fair price", "kerosene", "wheat", "rice subsidy"],
+        "keywords": ["ration", "pds", "ration card", "food grain", "fair price", "kerosene", "wheat", "rice subsidy", "राशन", "ரேஷன்", "రేషన్", "బియ్యం"],
         "slots": ["name", "ration_card_number", "issue_detail", "state"],
         "prompts": {
             "name": "What is the name on the ration card?",
@@ -68,7 +68,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "rti": {
         "label": "RTI Application",
-        "keywords": ["rti", "right to information", "information request", "information act", "document"],
+        "keywords": ["rti", "right to information", "information request", "information act", "document", "आरटीआई", "ఆర్టిఐ", "ஆர்டிஐ"],
         "slots": ["name", "department", "query", "address"],
         "prompts": {
             "name": "What name should the RTI application be filed under?",
@@ -81,7 +81,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "municipal": {
         "label": "Municipal Complaint",
-        "keywords": ["road", "pothole", "garbage", "streetlight", "light", "municipal", "sewage", "drainage", "footpath"],
+        "keywords": ["road", "pothole", "garbage", "streetlight", "light", "municipal", "sewage", "drainage", "footpath", "सड़क", "कचरा", "रोड", "சாலை", "குப்பை", "మున్సిపల్"],
         "slots": ["name", "address", "issue_detail"],
         "prompts": {
             "name": "May I have your name?",
@@ -93,7 +93,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "id_card": {
         "label": "ID / Document Issue",
-        "keywords": ["aadhaar", "pan", "voter id", "passport", "driving licence", "certificate", "birth", "caste", "income"],
+        "keywords": ["aadhaar", "pan", "voter id", "passport", "driving licence", "certificate", "birth", "caste", "income", "आधार", "पैन", "ఆధార్", "ஆதார்", "சான்றிதழ்"],
         "slots": ["name", "document_type", "issue_detail", "state"],
         "prompts": {
             "name": "May I have your name?",
@@ -106,7 +106,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "health": {
         "label": "Health / Ayushman Complaint",
-        "keywords": ["hospital", "medicine", "doctor", "health", "ayushman", "abha", "treatment", "nurse", "ambulance"],
+        "keywords": ["hospital", "medicine", "doctor", "health", "ayushman", "abha", "treatment", "nurse", "ambulance", "अस्पताल", "दवाई", "డాక్టర్", "மருத்துவர்", "மருந்து"],
         "slots": ["name", "hospital_name", "issue_detail", "state"],
         "prompts": {
             "name": "May I have your name?",
@@ -119,7 +119,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "roads": {
         "label": "Road / Highway Complaint",
-        "keywords": ["highway", "national road", "bridge", "flyover", "construction", "accident spot"],
+        "keywords": ["highway", "national road", "bridge", "flyover", "construction", "accident spot", "हाईवे", "सड़क", "హైవే", "நெடுஞ்சாலை"],
         "slots": ["name", "road_name", "location", "issue_detail"],
         "prompts": {
             "name": "May I have your name?",
@@ -132,7 +132,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "scholarship": {
         "label": "Scholarship / Education",
-        "keywords": ["scholarship", "stipend", "fee", "school", "college", "nsp", "student", "education"],
+        "keywords": ["scholarship", "stipend", "fee", "school", "college", "nsp", "student", "education", "छात्रवृत्ति", "స్కాలర్‌షిప్", "உதவித்தொகை"],
         "slots": ["name", "institution", "scholarship_type", "issue_detail"],
         "prompts": {
             "name": "What is the student's name?",
@@ -145,7 +145,7 @@ INTENTS: Dict[str, Dict[str, Any]] = {
     },
     "status": {
         "label": "Status Check",
-        "keywords": ["status", "track", "update", "check", "complaint number", "reference", "progress"],
+        "keywords": ["status", "track", "update", "check", "complaint number", "reference", "progress", "स्थिति", "స్టేటస్", "நிலை"],
         "slots": [],
         "prompts": {},
         "portal": "Voice Sarkar Internal",
