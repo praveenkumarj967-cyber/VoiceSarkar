@@ -365,12 +365,28 @@ async def web_phone_turn(payload: WebPhoneRequest, db: Session = Depends(get_db)
 
 @router.get("/tts")
 async def get_tts(text: str, lang: str):
-    """Generate TTS audio using Bhashini client."""
+    """Generate TTS audio using Bhashini client, falling back to public Google Translate TTS if mocked."""
     from app.services.bhashini.client import get_bhashini_client, MockBhashiniClient
     from fastapi import HTTPException
+    import httpx
+    
     client = get_bhashini_client()
     if isinstance(client, MockBhashiniClient):
-        raise HTTPException(status_code=400, detail="Bhashini credentials not set (Mock mode)")
+        # High-quality fallback for Indian languages when Bhashini is unconfigured
+        import urllib.parse
+        encoded_text = urllib.parse.quote(text)
+        lang_prefix = lang.split('-')[0].lower()
+        google_tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang_prefix}&client=tw-ob&q={encoded_text}"
+        try:
+            async with httpx.AsyncClient(timeout=10) as http_client:
+                headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                resp = await http_client.get(google_tts_url, headers=headers)
+                resp.raise_for_status()
+                return Response(content=resp.content, media_type="audio/mpeg")
+        except Exception as e:
+            logger.error(f"Google Translate TTS fallback failed: {e}")
+            raise HTTPException(status_code=400, detail="No TTS provider available")
+            
     try:
         audio_bytes = await client.text_to_speech(text, lang)
         return Response(content=audio_bytes, media_type="audio/wav")
