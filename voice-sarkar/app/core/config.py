@@ -50,8 +50,15 @@ class Settings(BaseSettings):
     # SMS
     sms_provider: str = "twilio"
 
-    # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:3001"]
+    # CORS — all local dev origins
+    cors_origins: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ]
 
     # Rate limiting
     rate_limit_per_minute: int = 60
