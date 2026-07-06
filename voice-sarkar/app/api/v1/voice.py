@@ -372,17 +372,39 @@ async def get_tts(text: str, lang: str):
     
     client = get_bhashini_client()
     if isinstance(client, MockBhashiniClient):
-        # High-quality fallback for Indian languages when Bhashini is unconfigured
+        # High-quality chunked fallback for Indian languages to bypass Google's 200-character limit
         import urllib.parse
-        encoded_text = urllib.parse.quote(text)
-        lang_prefix = lang.split('-')[0].lower()
-        google_tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang_prefix}&client=tw-ob&q={encoded_text}"
+        
+        chunks = []
+        words = text.split(" ")
+        current_chunk = []
+        current_len = 0
+        for word in words:
+            if current_len + len(word) + 1 > 120:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = [word]
+                current_len = len(word)
+            else:
+                current_chunk.append(word)
+                current_len += len(word) + 1
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+            
+        combined_audio = b""
+        lang_prefix = lang.split('-')[0].toLowerCase() if hasattr(lang, "toLowerCase") else lang.split('-')[0].lower()
+        
         try:
-            async with httpx.AsyncClient(timeout=10) as http_client:
+            async with httpx.AsyncClient(timeout=15) as http_client:
                 headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-                resp = await http_client.get(google_tts_url, headers=headers)
-                resp.raise_for_status()
-                return Response(content=resp.content, media_type="audio/mpeg")
+                for chunk in chunks:
+                    if not chunk.strip():
+                        continue
+                    encoded_text = urllib.parse.quote(chunk)
+                    google_tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang_prefix}&client=tw-ob&q={encoded_text}"
+                    resp = await http_client.get(google_tts_url, headers=headers)
+                    resp.raise_for_status()
+                    combined_audio += resp.content
+            return Response(content=combined_audio, media_type="audio/mpeg")
         except Exception as e:
             logger.error(f"Google Translate TTS fallback failed: {e}")
             raise HTTPException(status_code=400, detail="No TTS provider available")
