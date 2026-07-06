@@ -45,7 +45,7 @@ export default function ComplaintDetail() {
 
   const NAV = user?.role === "officer" ? 
     [{ href: "/officer", icon: "📊", label: "My Complaints" }, { href: "/analytics", icon: "📈", label: "Analytics" }] : 
-    [{ href: "/admin", icon: "📊", label: "Dashboard" }, { href: "/admin/complaints", icon: "📋", label: "Complaints" }, { href: "/admin/simulator", icon: "🎙️", label: "Voice Simulator" }, { href: "/analytics", icon: "📈", label: "Analytics" }];
+    [{ href: "/admin", icon: "📊", label: "Dashboard" }, { href: "/admin/complaints", icon: "📋", label: "Complaints" }, { href: "/admin/simulator", icon: "🎙️", label: "Voice Simulator" }, { href: "/admin/web-phone", icon: "📱", label: "Web Phone" }, { href: "/analytics", icon: "📈", label: "Analytics" }];
 
   useEffect(() => {
     const stored = localStorage.getItem("vs_user");

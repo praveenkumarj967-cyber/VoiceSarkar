@@ -20,6 +20,7 @@ const NAV = [
   { href: "/admin", icon: "📊", label: "Dashboard" },
   { href: "/admin/complaints", icon: "📋", label: "Complaints" },
   { href: "/admin/simulator", icon: "🎙️", label: "Voice Simulator" },
+  { href: "/admin/web-phone", icon: "📱", label: "Web Phone" },
   { href: "/analytics", icon: "📈", label: "Analytics" },
 ];
 
